@@ -1,0 +1,36 @@
+// Query 1: Detect potential coinminer malware
+DeviceProcessEvents
+| where ProcessCommandLine has_any ("monero", "xmrig", "cpuminer", "minerd")
+    or ProcessCommandLine matches regex @"(?i)(\.exe|\.dll)\s+-o\s+pool"
+    or ProcessCommandLine contains "--cpu-priority"
+| project Timestamp, DeviceName, AccountName, ProcessCommandLine, InitiatingProcessCommandLine, FileName
+| extend Alert = "Potential coinminer activity detected"
+
+// Query 2: Detect high CPU usage (often associated with mining)
+DevicePerformance
+| where Timestamp > ago(1h)
+| where CpuUsagePercentage > 90
+| summarize AvgCPU = avg(CpuUsagePercentage) by DeviceName
+| where AvgCPU > 90
+| project DeviceName, AvgCPU
+| join kind=inner (
+    DeviceProcessEvents
+    | where Timestamp > ago(1h)
+    | summarize ProcessList = make_set(ProcessCommandLine) by DeviceName
+) on DeviceName
+| extend Alert = "High CPU usage detected, possible mining activity"
+
+// Query 3: Detect brute force attempts on Windows
+SecurityEvent
+| where EventID in (4625, 4771)
+| summarize FailedAttempts = count() by TargetAccount, IpAddress, bin(TimeGenerated, 10m)
+| where FailedAttempts > 10
+| extend Alert = strcat("Potential brute force attack detected. ", FailedAttempts, " failed login attempts in 10 minutes")
+
+// Query 4: Detect brute force attempts on Linux
+Syslog
+| where SyslogMessage contains "Failed password"
+| parse SyslogMessage with * "invalid user " User " from " IpAddress " port" *
+| summarize FailedAttempts = count() by User, IpAddress, bin(TimeGenerated, 10m)
+| where FailedAttempts > 10
+| extend Alert = strcat("Potential Linux brute force attack detected. ", FailedAttempts, " failed login attempts in 10 minutes")
