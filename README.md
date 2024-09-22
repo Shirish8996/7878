@@ -1,6 +1,6 @@
 # Comprehensive KQL Queries for Threat Hunting
 
-This document provides a detailed explanation of several Kusto Query Language (KQL) queries designed for threat hunting in Microsoft Defender for Endpoint and Azure Sentinel environments. These queries cover various aspects of threat detection, including cryptocurrency mining, brute force attacks, and suspicious device connections.
+Detailed explanation of several Kusto Query Language (KQL) queries designed for threat hunting in Microsoft Defender for Endpoint and Azure Sentinel environments. These queries cover various aspects of threat detection, including cryptocurrency mining, brute force attacks, and suspicious device connections.
 
 ## Query 1: Detect Potential Coinminer Malware
 
